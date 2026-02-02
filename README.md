@@ -74,6 +74,11 @@ console.log('token', auth.token);
    ```
 3. **Login clásico**: llama a `sdk.auth.signIn({ email, password })`, guarda `token`/`refresh_token` (en memoria, cookie segura o `localStorage` cifrado) y úsalo para acceder a rutas protegidas. Maneja errores `TOKEN_VALIDATION_FAILED` borrando los datos y redirigiendo al login.
 4. **Registro**: llama a `sdk.auth.signUp` con `{ email, password }`, muestra el mensaje de verificación enviado por email y bloquea el login hasta que el usuario confirme. No esperes tokens inmediatos. Cuando recibas el `token` (desde el enlace o tu propia UI), redirige al usuario a `sdk.auth.getConfirmRegistrationUrl(token)` para que el backend haga su redirect final.
+   - **Importante**: `/api/v1/identity/confirm-registration` exige `anon_key` (tenant auth). Un navegador no puede adjuntar ese header en un link directo, por lo que **no debes abrir el backend directamente** desde el email. El flujo correcto es:
+     1. El email lleva al frontend (`FRONTEND_URL/verify?token=...`).
+     2. El frontend llama al backend con el SDK (que sí agrega `anon_key`).
+     3. El backend devuelve el redirect final (o respuesta) y el frontend navega al resultado.
+   - Si quieres evitar el paso 2 en el cliente, crea un endpoint interno (p. ej. `/api/confirm`) en tu frontend que haga la llamada con headers y luego redirija.
 5. **Refrescar/logout**: usa `sdk.auth.refreshToken(refreshToken)` antes de que expire el JWT y `sdk.auth.logout(refreshToken)` al cerrar sesión para que el backend invalide el refresh token.
 6. **Recuperar contraseña**: `sdk.auth.forgotPassword(email)` y luego `sdk.auth.resetPassword(token, newPassword)` con el token que recibes en el correo.
 7. **Google OAuth**:
