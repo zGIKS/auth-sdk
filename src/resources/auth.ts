@@ -18,12 +18,12 @@ export class AuthResource {
 
   async signUp(payload: SignUpRequest): Promise<AuthTokenResponse> {
     const tokens = await this.post<AuthTokenResponse>('/api/v1/auth/sign-up', payload);
-    await this.ensureTokenValid(tokens.token);
+    // No validamos el token aquí porque requiere confirmación de email
     return tokens;
   }
 
   async refreshToken(refreshToken: string): Promise<AuthTokenResponse> {
-    return this.post<AuthTokenResponse>('/api/v1/auth/refresh', { refresh_token: refreshToken });
+    return this.post<AuthTokenResponse>('/api/v1/auth/refresh-token', { refresh_token: refreshToken });
   }
 
   async logout(token: string): Promise<void> {
@@ -38,7 +38,7 @@ export class AuthResource {
   }
 
   async confirmRegistration(token: string): Promise<VerifyResponse> {
-    return this.client.request<VerifyResponse>('/api/v1/auth/confirm-registration', {
+    return this.client.request<VerifyResponse>('/api/v1/identity/confirm-registration', {
       method: 'GET',
       params: { token },
     });
@@ -49,6 +49,14 @@ export class AuthResource {
       method: 'GET',
       params: state ? { code, state } : { code },
     });
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    await this.post('/api/v1/identity/forgot-password', { email });
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    await this.post('/api/v1/identity/reset-password', { token, new_password: newPassword });
   }
 
   private async post<T = void>(path: string, body: unknown): Promise<T> {

@@ -64,7 +64,7 @@ export class FetchClient implements HttpClient {
   }
 
   private mergeHeaders(requestHeaders?: Record<string, string>): Record<string, string> {
-    const credentialHeader =
+    const credentialHeader: Record<string, string> =
       this.config.credentialHeader === 'apikey'
         ? { apikey: this.config.apiKey }
         : { Authorization: `Bearer ${this.config.apiKey}` };
