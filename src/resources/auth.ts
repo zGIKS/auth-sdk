@@ -36,12 +36,9 @@ export class AuthResource {
       params: { token },
     });
   }
-
-  async confirmRegistration(token: string): Promise<VerifyResponse> {
-    return this.client.request<VerifyResponse>('/api/v1/identity/confirm-registration', {
-      method: 'GET',
-      params: { token },
-    });
+  getConfirmRegistrationUrl(token: string): string {
+    const params = new URLSearchParams({ token });
+    return `${this.client.getBaseUrl()}/api/v1/identity/confirm-registration?${params.toString()}`;
   }
 
   getGoogleAuthUrl(): string {

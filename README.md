@@ -53,8 +53,9 @@ console.log('token', auth.token);
 ## Supported flows
 
 - Tenant creation / lookup via `sdk.tenants.create` and `sdk.tenants.get` (requires Authorization/apikey header with tenant's `anon_key`).
-- Auth flows such as `signIn`, `signUp`, `refreshToken`, `logout`, `verifyToken`, `confirmRegistration`.
+- Auth flows such as `signIn`, `signUp`, `refreshToken`, `logout`, `verifyToken`.
 - Google integration helpers: `getGoogleAuthUrl()` to generate the redirect URL and `claimGoogle(code)` to exchange the ephemeral code returned by the backend for `{ token, refresh_token }`.
+- Confirmation helper: `getConfirmRegistrationUrl(token)` genera la URL que debes abrir para que el backend complete la confirmación (redirige al frontend a `/email-verified` o `/email-verification-failed`).
 - All tenant-aware requests include the configured credential header (`Authorization: Bearer <anon_key>` by default or `apikey: <anon_key>`).
 - Verification calls that return `{ is_valid: false }` trigger a reject so the consuming app can clear local session data.
 
@@ -72,7 +73,7 @@ console.log('token', auth.token);
    }), []);
    ```
 3. **Login clásico**: llama a `sdk.auth.signIn({ email, password })`, guarda `token`/`refresh_token` (en memoria, cookie segura o `localStorage` cifrado) y úsalo para acceder a rutas protegidas. Maneja errores `TOKEN_VALIDATION_FAILED` borrando los datos y redirigiendo al login.
-4. **Registro**: llama a `sdk.auth.signUp` con `{ email, password }`, muestra el mensaje de verificación enviado por email y bloquea el login hasta que el usuario confirme. No esperes tokens inmediatos.
+4. **Registro**: llama a `sdk.auth.signUp` con `{ email, password }`, muestra el mensaje de verificación enviado por email y bloquea el login hasta que el usuario confirme. No esperes tokens inmediatos. Cuando recibas el `token` (desde el enlace o tu propia UI), redirige al usuario a `sdk.auth.getConfirmRegistrationUrl(token)` para que el backend haga su redirect final.
 5. **Refrescar/logout**: usa `sdk.auth.refreshToken(refreshToken)` antes de que expire el JWT y `sdk.auth.logout(refreshToken)` al cerrar sesión para que el backend invalide el refresh token.
 6. **Recuperar contraseña**: `sdk.auth.forgotPassword(email)` y luego `sdk.auth.resetPassword(token, newPassword)` con el token que recibes en el correo.
 7. **Google OAuth**:
