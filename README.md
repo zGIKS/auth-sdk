@@ -54,8 +54,8 @@ console.log('token', auth.token);
 
 - Tenant creation / lookup via `sdk.tenants.create` and `sdk.tenants.get` (requires Authorization/apikey header with tenant's `anon_key`).
 - Auth flows such as `signIn`, `signUp`, `refreshToken`, `logout`, `verifyToken`.
-- Google integration helpers: `getGoogleAuthUrl()` to generate the redirect URL and `claimGoogle(code)` to exchange the ephemeral code returned by the backend for `{ token, refresh_token }`.
-- Confirmation helper: `getConfirmRegistrationUrl(token)` genera la URL que debes abrir para que el backend complete la confirmación (redirige al frontend a `/email-verified` o `/email-verification-failed`).
+- Google integration helpers: `getGoogleAuthUrl()` para generar la URL de inicio de OAuth (requiere `anon_key` porque el backend resuelve el tenant). El `state` va firmado (JWT) y el callback es público. Luego usa `claimGoogle(code)` para intercambiar el código efímero por `{ token, refresh_token }`.
+- Confirmation helper: `getConfirmRegistrationUrl(token)` genera la URL que debes abrir para que el backend complete la confirmación (redirige al frontend a `/email-verified` o `/email-verification-failed`). Este endpoint exige `anon_key`, por eso debe abrirse desde el frontend o una route intermedia que agregue headers.
 - All tenant-aware requests include the configured credential header (`Authorization: Bearer <anon_key>` by default or `apikey: <anon_key>`).
 - Verification calls that return `{ is_valid: false }` trigger a reject so the consuming app can clear local session data.
 
@@ -82,8 +82,8 @@ console.log('token', auth.token);
 5. **Refrescar/logout**: usa `sdk.auth.refreshToken(refreshToken)` antes de que expire el JWT y `sdk.auth.logout(refreshToken)` al cerrar sesión para que el backend invalide el refresh token.
 6. **Recuperar contraseña**: `sdk.auth.forgotPassword(email)` y luego `sdk.auth.resetPassword(token, newPassword)` con el token que recibes en el correo.
 7. **Google OAuth**:
-   - Redirige al usuario a `sdk.auth.getGoogleAuthUrl()` (puedes abrirlo con `window.location.href`).
-   - Google redirige a tu backend en `/api/v1/auth/google/callback`, que a su vez redirige de nuevo a tu frontend en `FRONTEND_URL/auth/google/callback?code=...`.
+   - Inicia el flujo llamando a `sdk.auth.getGoogleAuthUrl()` desde una route intermedia (para adjuntar `anon_key`) y redirige al usuario.
+   - Google redirige a tu backend en `/api/v1/auth/google/callback` (público). El backend valida el `state` firmado y redirige al frontend con `code`.
    - Captura ese `code` en la página de callback y llama a `sdk.auth.claimGoogle(code)` para recibir `{ token, refresh_token }`.
 8. **Verificaciones**: puedes llamar a `sdk.auth.verifyToken(token)` al cargar páginas protegidas; el SDK rechaza automáticamente si el backend devuelve `is_valid: false` y así puedes limpiar sesiones.
 
