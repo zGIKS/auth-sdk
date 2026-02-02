@@ -5,4 +5,5 @@ export interface RequestConfig extends Omit<RequestInit, 'headers'> {
 
 export interface HttpClient {
   request<T>(path: string, config?: RequestConfig): Promise<T>;
+  getBaseUrl(): string;
 }

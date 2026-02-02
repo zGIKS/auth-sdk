@@ -2,6 +2,7 @@ import { HttpClient } from '../core/network/http-client';
 import { SDKError } from '../core/errors';
 import {
   AuthTokenResponse,
+  RegisterIdentityResponse,
   SignInRequest,
   SignUpRequest,
   VerifyResponse,
@@ -16,18 +17,17 @@ export class AuthResource {
     return tokens;
   }
 
-  async signUp(payload: SignUpRequest): Promise<AuthTokenResponse> {
-    const tokens = await this.post<AuthTokenResponse>('/api/v1/auth/sign-up', payload);
-    // No validamos el token aquí porque requiere confirmación de email
-    return tokens;
+  async signUp(payload: SignUpRequest): Promise<RegisterIdentityResponse> {
+    // La respuesta solo incluye un mensaje porque el backend no emite tokens aún
+    return this.post<RegisterIdentityResponse>('/api/v1/auth/sign-up', payload);
   }
 
   async refreshToken(refreshToken: string): Promise<AuthTokenResponse> {
     return this.post<AuthTokenResponse>('/api/v1/auth/refresh-token', { refresh_token: refreshToken });
   }
 
-  async logout(token: string): Promise<void> {
-    await this.post('/api/v1/auth/logout', { token });
+  async logout(refreshToken: string): Promise<void> {
+    await this.post('/api/v1/auth/logout', { refresh_token: refreshToken });
   }
 
   async verifyToken(token: string): Promise<VerifyResponse> {
@@ -44,11 +44,15 @@ export class AuthResource {
     });
   }
 
-  async googleCallback(code: string, state?: string): Promise<AuthTokenResponse> {
-    return this.client.request<AuthTokenResponse>('/api/v1/auth/google/callback', {
-      method: 'GET',
-      params: state ? { code, state } : { code },
-    });
+  getGoogleAuthUrl(): string {
+    return new URL('/api/v1/auth/google', this.client.getBaseUrl()).toString();
+  }
+
+  async claimGoogle(code: string, state?: string): Promise<AuthTokenResponse> {
+    const payload = state ? { code, state } : { code };
+    const tokens = await this.post<AuthTokenResponse>('/api/v1/auth/google/claim', payload);
+    await this.ensureTokenValid(tokens.token);
+    return tokens;
   }
 
   async forgotPassword(email: string): Promise<void> {
