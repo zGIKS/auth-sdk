@@ -1,114 +1,90 @@
-[giks@rogarch demo-saas]$ bun install
-[0.02ms] ".env"
-bun install v1.3.2 (b131639c)
+# Auth SDK
 
-+ auth-sdk@../auth-sdk
+TypeScript SDK that wraps the IAM auth backend described in this repo. The SDK follows the tenant-aware middleware expectations and keeps the tenant `anon_key` (JWT signed with `JWT_SECRET`) inside the configured credential header.
 
-1 package installed [56.00ms]
-[giks@rogarch demo-saas]$ bun run dev
-$ next dev
-▲ Next.js 16.1.6 (Turbopack)
-- Local:         http://localhost:3000
-- Network:       http://192.168.100.39:3000
-- Environments: .env
-- Experiments (use with caution):
-  ✓ externalDir
+## Getting started
 
-✓ Starting...
-⨯ ./src/services/iam/auth.service.ts:1:1
-Module not found: Can't resolve 'auth-sdk'
-> 1 | import { AuthSDK, SDKError, type SignInRequest, type SignUpRequest } from 'auth-sdk';
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  2 |
-  3 | export type SignUpData = SignUpRequest;
-  4 | export type SignInData = SignInRequest;
+1. Install the SDK dependencies:
+   ```bash
+   npm install
+   ```
+2. Build the SDK before publishing or importing it from another workspace:
+   ```bash
+   npm run build
+   ```
 
-Invalid symlink
+## Configuration
 
-Debug info:
-- Execution of <ModuleAssetContext as AssetContext>::resolve_asset failed
-- Execution of resolve failed
-- Execution of resolve_internal failed
-- Execution of *ResolveResult::is_unresolvable failed
-- Execution of *ResolveResult::with_replaced_request_key failed
-- Execution of resolve_into_package failed
-- Execution of exports_field failed
-- Execution of read_package_json failed
-- Execution of *AssetContent::parse_json failed
-- Execution of <FileSource as Asset>::content failed
-- Invalid symlink
+This SDK expects the backend to run at `http://localhost:8081` by default and to expose the following `.env` settings:
 
+| Variable | Development value | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | `postgres://postgres:admin@localhost:5432/saas_auth` | Tenant-aware Postgres connection |
+| `PORT` | `8081` | HTTP port that matches this SDK's base URL |
+| `REDIS_URL` | `redis://localhost:6379` | Session store and token blacklist |
+| `JWT_SECRET` | `super_secret_jwt_key_for_local_dev_123456789` | Same secret must issue `anon_key` and tokens |
+| `FRONTEND_URL` | `http://localhost:3000` | Used for e-mail redirects |
+| `GOOGLE_REDIRECT_URI` | `http://localhost:8081/api/v1/auth/google/callback` | OAuth callback target |
 
-Import trace:
-  Middleware:
-    ./src/services/iam/auth.service.ts
-    ./src/proxy.ts
+When constructing the SDK you must pass in the `anon_key` returned by `POST /api/v1/tenants` or the environment equivalent.
 
-https://nextjs.org/docs/messages/module-not-found
+## Usage example
 
+```ts
+import { AuthSDK, SignInRequest } from 'auth-sdk';
 
-⨯ ./src/services/iam/auth.service.ts:1:1
-Module not found: Can't resolve 'auth-sdk'
-> 1 | import { AuthSDK, SDKError, type SignInRequest, type SignUpRequest } from 'auth-sdk';
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  2 |
-  3 | export type SignUpData = SignUpRequest;
-  4 | export type SignInData = SignInRequest;
+const sdk = new AuthSDK({
+  apiKey: process.env.ANON_KEY!,
+  baseUrl: 'http://localhost:8081',
+  credentialHeader: 'authorization',
+});
 
-Invalid symlink
+const signInPayload: SignInRequest = {
+  email: 'admin@example.com',
+  password: 'strong-password',
+};
 
-Debug info:
-- Execution of <ModuleAssetContext as AssetContext>::resolve_asset failed
-- Execution of resolve failed
-- Execution of resolve_internal failed
-- Execution of *ResolveResult::is_unresolvable failed
-- Execution of *ResolveResult::with_replaced_request_key failed
-- Execution of resolve_into_package failed
-- Execution of exports_field failed
-- Execution of read_package_json failed
-- Execution of *AssetContent::parse_json failed
-- Execution of <FileSource as Asset>::content failed
-- Invalid symlink
+const auth = await sdk.auth.signIn(signInPayload);
+console.log('token', auth.token);
+```
 
+> The SDK automatically verifies every new token via `GET /api/v1/auth/verify?token=` and surfaces a `TOKEN_VALIDATION_FAILED` error if the backend deems the token invalid.
 
-Import trace:
-  Middleware:
-    ./src/services/iam/auth.service.ts
-    ./src/proxy.ts
+## Supported flows
 
-https://nextjs.org/docs/messages/module-not-found
+- Tenant creation / lookup via `sdk.tenants.create` and `sdk.tenants.get` (requires Authorization/apikey header with tenant's `anon_key`).
+- Auth flows such as `signIn`, `signUp`, `refreshToken`, `logout`, `verifyToken`, `confirmRegistration`.
+- Google integration helpers: `getGoogleAuthUrl()` to generate the redirect URL and `claimGoogle(code)` to exchange the ephemeral code returned by the backend for `{ token, refresh_token }`.
+- All tenant-aware requests include the configured credential header (`Authorization: Bearer <anon_key>` by default or `apikey: <anon_key>`).
+- Verification calls that return `{ is_valid: false }` trigger a reject so the consuming app can clear local session data.
 
+## Cómo implementar paso a paso en un frontend (Next.js / React)
 
-⨯ ./src/services/iam/auth.service.ts:1:1
-Module not found: Can't resolve 'auth-sdk'
-> 1 | import { AuthSDK, SDKError, type SignInRequest, type SignUpRequest } from 'auth-sdk';
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  2 |
-  3 | export type SignUpData = SignUpRequest;
-  4 | export type SignInData = SignInRequest;
+1. **Configura tu entorno**: crea un `.env.local` con `NEXT_PUBLIC_API_BASE=http://localhost:8081` y `NEXT_PUBLIC_TENANT_KEY=<anon_key>`. Asegúrate de que el backend esté corriendo y que el `anon_key` provenga de `/api/v1/tenants` (o de `GET /api/v1/tenants/{id}`).
+2. **Inicializa el SDK** en un proveedor o hook compartido:
+   ```ts
+   import { AuthSDK } from 'auth-sdk';
 
-Invalid symlink
+   const sdk = useMemo(() => new AuthSDK({
+     apiKey: process.env.NEXT_PUBLIC_TENANT_KEY!,
+     baseUrl: process.env.NEXT_PUBLIC_API_BASE,
+     credentialHeader: 'authorization',
+   }), []);
+   ```
+3. **Login clásico**: llama a `sdk.auth.signIn({ email, password })`, guarda `token`/`refresh_token` (en memoria, cookie segura o `localStorage` cifrado) y úsalo para acceder a rutas protegidas. Maneja errores `TOKEN_VALIDATION_FAILED` borrando los datos y redirigiendo al login.
+4. **Registro**: llama a `sdk.auth.signUp` con `{ email, password }`, muestra el mensaje de verificación enviado por email y bloquea el login hasta que el usuario confirme. No esperes tokens inmediatos.
+5. **Refrescar/logout**: usa `sdk.auth.refreshToken(refreshToken)` antes de que expire el JWT y `sdk.auth.logout(refreshToken)` al cerrar sesión para que el backend invalide el refresh token.
+6. **Recuperar contraseña**: `sdk.auth.forgotPassword(email)` y luego `sdk.auth.resetPassword(token, newPassword)` con el token que recibes en el correo.
+7. **Google OAuth**:
+   - Redirige al usuario a `sdk.auth.getGoogleAuthUrl()` (puedes abrirlo con `window.location.href`).
+   - Google redirige a tu backend en `/api/v1/auth/google/callback`, que a su vez redirige de nuevo a tu frontend en `FRONTEND_URL/auth/google/callback?code=...`.
+   - Captura ese `code` en la página de callback y llama a `sdk.auth.claimGoogle(code)` para recibir `{ token, refresh_token }`.
+8. **Verificaciones**: puedes llamar a `sdk.auth.verifyToken(token)` al cargar páginas protegidas; el SDK rechaza automáticamente si el backend devuelve `is_valid: false` y así puedes limpiar sesiones.
 
-Debug info:
-- Execution of <ModuleAssetContext as AssetContext>::resolve_asset failed
-- Execution of resolve failed
-- Execution of resolve_internal failed
-- Execution of *ResolveResult::is_unresolvable failed
-- Execution of *ResolveResult::with_replaced_request_key failed
-- Execution of resolve_into_package failed
-- Execution of exports_field failed
-- Execution of read_package_json failed
-- Execution of *AssetContent::parse_json failed
-- Execution of <FileSource as Asset>::content failed
-- Invalid symlink
+Con estos pasos tienes un «playbook» completo para conectar Next.js (o cualquier SPA) con tu backend usando el SDK oficial y respetando los flujos multi-tenant documentados.
 
+## Building & validation
 
-Import trace:
-  Middleware:
-    ./src/services/iam/auth.service.ts
-    ./src/proxy.ts
-
-https://nextjs.org/docs/messages/module-not-found
-
-
-✓ Ready in 379ms
+- `npm run build`: emits CommonJS/ESM bundles plus `.d.ts` files via `tsup`.
+- `npm run lint`: validates TypeScript without allowing `any`.
+- The SDK uses strict typing, zero runtime dependencies, and works in Node and browser environments.
