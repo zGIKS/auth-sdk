@@ -17,6 +17,10 @@ export interface AuthTokenResponse {
   refresh_token: string;
 }
 
+export interface RegisterIdentityResponse {
+  message: string;
+}
+
 export interface SignInRequest {
   email: string;
   password: string;

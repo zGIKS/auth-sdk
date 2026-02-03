@@ -76,4 +76,8 @@ export class FetchClient implements HttpClient {
       ...requestHeaders,
     };
   }
+
+  getBaseUrl(): string {
+    return this.config.baseUrl;
+  }
 }
