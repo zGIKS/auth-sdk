@@ -19,7 +19,7 @@ export class AuthResource {
 
   async signUp(payload: SignUpRequest): Promise<RegisterIdentityResponse> {
     // La respuesta solo incluye un mensaje porque el backend no emite tokens aún
-    return this.post<RegisterIdentityResponse>('/api/v1/auth/sign-up', payload);
+    return this.post<RegisterIdentityResponse>('/api/v1/identity/sign-up', payload);
   }
 
   async refreshToken(refreshToken: string): Promise<AuthTokenResponse> {
