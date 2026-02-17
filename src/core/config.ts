@@ -42,7 +42,7 @@ export class Config {
     try {
       const url = new URL(rawUrl);
       return url.href.replace(/\/$/, '');
-    } catch (error) {
+    } catch (_error) {
       throw new Error(`SDK Initialization Error: baseUrl '${rawUrl}' is not a valid URL.`);
     }
   }

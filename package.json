@@ -2,22 +2,44 @@
   "name": "auth-sdk",
   "version": "0.1.0",
   "description": "TypeScript SDK for interacting with the IAM Service auth backend.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zGIKS/auth-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zGIKS/auth-sdk/issues"
+  },
+  "homepage": "https://github.com/zGIKS/auth-sdk#readme",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
   "files": [
     "dist"
   ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
-    "lint": "eslint . --ext .ts",
-    "test": "echo \"No tests configured\" && exit 0"
+    "lint": "eslint .",
+    "prepublishOnly": "npm run build && npm run lint"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "tsup": "^8.0.0",
     "typescript": "^5.3.0",
     "eslint": "^9.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0"
+    "globals": "^16.5.0",
+    "@typescript-eslint/parser": "^8.46.1",
+    "@typescript-eslint/eslint-plugin": "^8.46.1"
   }
 }
