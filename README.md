@@ -48,7 +48,7 @@ const auth = await sdk.auth.signIn(signInPayload);
 console.log('token', auth.token);
 ```
 
-> The SDK automatically verifies every new token via `GET /api/v1/auth/verify?token=` and surfaces a `TOKEN_VALIDATION_FAILED` error if the backend deems the token invalid.
+> Usa `sdk.auth.verifyToken(token)` cuando necesites validación explícita (por ejemplo al cargar rutas protegidas o rehidratar sesión).
 
 ## Supported flows
 
@@ -57,7 +57,7 @@ console.log('token', auth.token);
 - Google integration helpers: `getGoogleAuthUrl()` para generar la URL de inicio de OAuth (requiere `anon_key` porque el backend resuelve el tenant). El `state` va firmado (JWT) y el callback es público. Luego usa `claimGoogle(code)` para intercambiar el código efímero por `{ token, refresh_token }`.
 - Confirmation helper: `getConfirmRegistrationUrl(token)` genera la URL que debes abrir para que el backend complete la confirmación (redirige al frontend a `/email-verified` o `/email-verification-failed`). Este endpoint exige `anon_key`, por eso debe abrirse desde el frontend o una route intermedia que agregue headers.
 - All tenant-aware requests include the configured credential header (`Authorization: Bearer <anon_key>` by default or `apikey: <anon_key>`).
-- Verification calls that return `{ is_valid: false }` trigger a reject so the consuming app can clear local session data.
+- Verification calls (`sdk.auth.verifyToken`) return `{ is_valid }` para que la app decida si limpia o mantiene la sesión.
 
 ## Cómo implementar paso a paso en un frontend (Next.js / React)
 
@@ -72,7 +72,7 @@ console.log('token', auth.token);
      credentialHeader: 'authorization',
    }), []);
    ```
-3. **Login clásico**: llama a `sdk.auth.signIn({ email, password })`, guarda `token`/`refresh_token` (en memoria, cookie segura o `localStorage` cifrado) y úsalo para acceder a rutas protegidas. Maneja errores `TOKEN_VALIDATION_FAILED` borrando los datos y redirigiendo al login.
+3. **Login clásico**: llama a `sdk.auth.signIn({ email, password })`, guarda `token`/`refresh_token` (en memoria, cookie segura o `localStorage` cifrado) y úsalo para acceder a rutas protegidas. Si necesitas validación inmediata, llama a `sdk.auth.verifyToken(token)` y limpia la sesión si `is_valid` es `false`.
 4. **Registro**: llama a `sdk.auth.signUp` con `{ email, password }`, muestra el mensaje de verificación enviado por email y bloquea el login hasta que el usuario confirme. No esperes tokens inmediatos. Cuando recibas el `token` (desde el enlace o tu propia UI), redirige al usuario a `sdk.auth.getConfirmRegistrationUrl(token)` para que el backend haga su redirect final.
    - **Importante**: `/api/v1/identity/confirm-registration` exige `anon_key` (tenant auth). Un navegador no puede adjuntar ese header en un link directo, por lo que **no debes abrir el backend directamente** desde el email. El flujo correcto es:
      1. El email lleva al frontend (`FRONTEND_URL/verify?token=...`).
@@ -85,7 +85,7 @@ console.log('token', auth.token);
    - Inicia el flujo llamando a `sdk.auth.getGoogleAuthUrl()` desde una route intermedia (para adjuntar `anon_key`) y redirige al usuario.
    - Google redirige a tu backend en `/api/v1/auth/google/callback` (público). El backend valida el `state` firmado y redirige al frontend con `code`.
    - Captura ese `code` en la página de callback y llama a `sdk.auth.claimGoogle(code)` para recibir `{ token, refresh_token }`.
-8. **Verificaciones**: puedes llamar a `sdk.auth.verifyToken(token)` al cargar páginas protegidas; el SDK rechaza automáticamente si el backend devuelve `is_valid: false` y así puedes limpiar sesiones.
+8. **Verificaciones**: puedes llamar a `sdk.auth.verifyToken(token)` al cargar páginas protegidas y, si `is_valid` es `false`, limpiar la sesión y redirigir al login.
 
 Con estos pasos tienes un «playbook» completo para conectar Next.js (o cualquier SPA) con tu backend usando el SDK oficial y respetando los flujos multi-tenant documentados.
 

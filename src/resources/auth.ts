@@ -1,5 +1,4 @@
 import { HttpClient } from '../core/network/http-client';
-import { SDKError } from '../core/errors';
 import {
   AuthTokenResponse,
   RegisterIdentityResponse,
@@ -12,9 +11,7 @@ export class AuthResource {
   constructor(private readonly client: HttpClient) {}
 
   async signIn(payload: SignInRequest): Promise<AuthTokenResponse> {
-    const tokens = await this.post<AuthTokenResponse>('/api/v1/auth/sign-in', payload);
-    await this.ensureTokenValid(tokens.token);
-    return tokens;
+    return this.post<AuthTokenResponse>('/api/v1/auth/sign-in', payload);
   }
 
   async signUp(payload: SignUpRequest): Promise<RegisterIdentityResponse> {
@@ -36,6 +33,7 @@ export class AuthResource {
       params: { token },
     });
   }
+
   getConfirmRegistrationUrl(token: string): string {
     const params = new URLSearchParams({ token });
     return `${this.client.getBaseUrl()}/api/v1/identity/confirm-registration?${params.toString()}`;
@@ -47,9 +45,7 @@ export class AuthResource {
 
   async claimGoogle(code: string, state?: string): Promise<AuthTokenResponse> {
     const payload = state ? { code, state } : { code };
-    const tokens = await this.post<AuthTokenResponse>('/api/v1/auth/google/claim', payload);
-    await this.ensureTokenValid(tokens.token);
-    return tokens;
+    return this.post<AuthTokenResponse>('/api/v1/auth/google/claim', payload);
   }
 
   async forgotPassword(email: string): Promise<void> {
@@ -65,12 +61,5 @@ export class AuthResource {
       method: 'POST',
       body: JSON.stringify(body),
     });
-  }
-
-  private async ensureTokenValid(token: string): Promise<void> {
-    const validation = await this.verifyToken(token);
-    if (!validation.is_valid) {
-      throw new SDKError('Token validation failed', 'TOKEN_VALIDATION_FAILED');
-    }
   }
 }
