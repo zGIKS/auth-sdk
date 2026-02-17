@@ -1,5 +1,5 @@
 {
-  "name": "auth-sdk",
+  "name": "asphanyx-sdk",
   "version": "0.1.0",
   "description": "TypeScript SDK for interacting with the IAM Service auth backend.",
   "license": "MIT",

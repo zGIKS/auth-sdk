@@ -1,4 +1,4 @@
-# auth-sdk
+# asphanyx-sdk
 
 TypeScript SDK for client-side authentication flows against the IAM backend.
 
@@ -22,13 +22,13 @@ Tenant administration endpoints are not part of this package.
 ## Install
 
 ```bash
-npm install auth-sdk
+npm install asphanyx-sdk
 ```
 
 ## Usage
 
 ```ts
-import { AuthSDK } from 'auth-sdk';
+import { AuthSDK } from 'asphanyx-sdk';
 
 const sdk = new AuthSDK({
   apiKey: process.env.NEXT_PUBLIC_TENANT_ANON_KEY!,
