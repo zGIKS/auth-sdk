@@ -15,7 +15,7 @@ TypeScript SDK that wraps the IAM auth backend described in this repo. The SDK f
 
 ## Configuration
 
-This SDK expects the backend to run at `http://localhost:8081` by default and to expose the following `.env` settings:
+This SDK expects you to provide the backend URL explicitly (for example from frontend environment variables) and to expose the following `.env` settings:
 
 | Variable | Development value | Purpose |
 | --- | --- | --- |
@@ -26,7 +26,9 @@ This SDK expects the backend to run at `http://localhost:8081` by default and to
 | `FRONTEND_URL` | `http://localhost:3000` | Used for e-mail redirects |
 | `GOOGLE_REDIRECT_URI` | `http://localhost:8081/api/v1/auth/google/callback` | OAuth callback target |
 
-When constructing the SDK you must pass in the `anon_key` returned by `POST /api/v1/tenants` or the environment equivalent.
+When constructing the SDK you must pass both:
+- `anon_key` returned by `POST /api/v1/tenants` (or environment equivalent).
+- `baseUrl` for your IAM backend (for example `process.env.NEXT_PUBLIC_API_BASE`).
 
 ## Usage example
 

@@ -3,8 +3,8 @@ export type CredentialHeaderStrategy = 'authorization' | 'apikey';
 export interface SDKOptions {
   /** apiKey in this context is the anon_key issued per tenant */
   apiKey: string;
-  /** Base URL for the auth backend; defaults to http://localhost:8081 */
-  baseUrl?: string;
+  /** Base URL for the auth backend */
+  baseUrl: string;
   /** Milliseconds to wait before aborting requests */
   timeout?: number;
   /** Additional headers appended to every request */
@@ -14,7 +14,6 @@ export interface SDKOptions {
 }
 
 export class Config {
-  private static readonly DEFAULT_BASE_URL = 'http://localhost:8081';
   private static readonly DEFAULT_TIMEOUT = 10_000;
   private static readonly DEFAULT_HEADER_STRATEGY: CredentialHeaderStrategy = 'authorization';
 
@@ -28,10 +27,13 @@ export class Config {
     if (!options.apiKey) {
       throw new Error("SDK Initialization Error: 'apiKey' (anon_key) is required.");
     }
+    if (!options.baseUrl) {
+      throw new Error("SDK Initialization Error: 'baseUrl' is required.");
+    }
 
     this.apiKey = options.apiKey;
     this.timeout = options.timeout ?? Config.DEFAULT_TIMEOUT;
-    this.baseUrl = Config.normalizeBaseUrl(options.baseUrl ?? Config.DEFAULT_BASE_URL);
+    this.baseUrl = Config.normalizeBaseUrl(options.baseUrl);
     this.headers = Object.freeze({ ...(options.headers ?? {}) });
     this.credentialHeader = options.credentialHeader ?? Config.DEFAULT_HEADER_STRATEGY;
   }
