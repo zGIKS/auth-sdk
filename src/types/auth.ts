@@ -10,12 +10,14 @@ export interface RegisterIdentityResponse {
 export interface SignInRequest {
   email: string;
   password: string;
+  tenant_anon_key?: string;
 }
 
 export interface SignUpRequest {
   email: string;
   password: string;
   name?: string;
+  tenant_anon_key?: string;
 }
 
 export interface VerifyResponse {

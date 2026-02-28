@@ -11,16 +11,28 @@ export class AuthResource {
   constructor(private readonly client: HttpClient) {}
 
   async signIn(payload: SignInRequest): Promise<AuthTokenResponse> {
-    return this.post<AuthTokenResponse>('/api/v1/auth/sign-in', payload);
+    const tenantAnonKey = this.resolveTenantAnonKey(payload.tenant_anon_key);
+    return this.post<AuthTokenResponse>('/api/v1/auth/sign-in', {
+      ...payload,
+      tenant_anon_key: tenantAnonKey,
+    });
   }
 
   async signUp(payload: SignUpRequest): Promise<RegisterIdentityResponse> {
     // La respuesta solo incluye un mensaje porque el backend no emite tokens aún
-    return this.post<RegisterIdentityResponse>('/api/v1/identity/sign-up', payload);
+    const tenantAnonKey = this.resolveTenantAnonKey(payload.tenant_anon_key);
+    return this.post<RegisterIdentityResponse>('/api/v1/identity/sign-up', {
+      ...payload,
+      tenant_anon_key: tenantAnonKey,
+    });
   }
 
-  async refreshToken(refreshToken: string): Promise<AuthTokenResponse> {
-    return this.post<AuthTokenResponse>('/api/v1/auth/refresh-token', { refresh_token: refreshToken });
+  async refreshToken(refreshToken: string, tenantAnonKeyOverride?: string): Promise<AuthTokenResponse> {
+    const tenantAnonKey = this.resolveTenantAnonKey(tenantAnonKeyOverride);
+    return this.post<AuthTokenResponse>('/api/v1/auth/refresh-token', {
+      refresh_token: refreshToken,
+      tenant_anon_key: tenantAnonKey,
+    });
   }
 
   async logout(refreshToken: string): Promise<void> {
@@ -34,13 +46,22 @@ export class AuthResource {
     });
   }
 
-  getConfirmRegistrationUrl(token: string): string {
+  getConfirmRegistrationUrl(token: string, tenantAnonKeyOverride?: string): string {
     const params = new URLSearchParams({ token });
+    const tenantAnonKey = this.resolveTenantAnonKey(tenantAnonKeyOverride);
+    if (tenantAnonKey) {
+      params.set('tenant_anon_key', tenantAnonKey);
+    }
     return `${this.client.getBaseUrl()}/api/v1/identity/confirm-registration?${params.toString()}`;
   }
 
-  getGoogleAuthUrl(): string {
-    return new URL('/api/v1/auth/google', this.client.getBaseUrl()).toString();
+  getGoogleAuthUrl(tenantAnonKeyOverride?: string): string {
+    const url = new URL('/api/v1/auth/google', this.client.getBaseUrl());
+    const tenantAnonKey = this.resolveTenantAnonKey(tenantAnonKeyOverride);
+    if (tenantAnonKey) {
+      url.searchParams.set('tenant_anon_key', tenantAnonKey);
+    }
+    return url.toString();
   }
 
   async claimGoogle(code: string, state?: string): Promise<AuthTokenResponse> {
@@ -61,5 +82,9 @@ export class AuthResource {
       method: 'POST',
       body: JSON.stringify(body),
     });
+  }
+
+  private resolveTenantAnonKey(override?: string): string | undefined {
+    return override ?? this.client.getTenantAnonKey();
   }
 }

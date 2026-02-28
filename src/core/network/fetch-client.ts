@@ -64,13 +64,7 @@ export class FetchClient implements HttpClient {
   }
 
   private mergeHeaders(requestHeaders?: Record<string, string>): Record<string, string> {
-    const credentialHeader: Record<string, string> =
-      this.config.credentialHeader === 'apikey'
-        ? { apikey: this.config.apiKey }
-        : { Authorization: `Bearer ${this.config.apiKey}` };
-
     return {
-      ...credentialHeader,
       'Content-Type': 'application/json',
       ...this.config.headers,
       ...requestHeaders,
@@ -79,5 +73,9 @@ export class FetchClient implements HttpClient {
 
   getBaseUrl(): string {
     return this.config.baseUrl;
+  }
+
+  getTenantAnonKey(): string | undefined {
+    return this.config.tenantAnonKey;
   }
 }
