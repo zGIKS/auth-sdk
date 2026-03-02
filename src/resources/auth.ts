@@ -42,7 +42,9 @@ export class AuthResource {
   async verifyToken(token: string): Promise<VerifyResponse> {
     return this.client.request<VerifyResponse>('/api/v1/auth/verify', {
       method: 'GET',
-      params: { token },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
   }
 
