@@ -20,7 +20,7 @@ export class FetchClient implements HttpClient {
       const response = await fetch(url.toString(), {
         ...config,
         method: config.method ?? 'GET',
-        headers: this.mergeHeaders(config.headers),
+        headers: this.mergeHeaders(config.headers, config.body),
         signal,
       });
 
@@ -63,12 +63,23 @@ export class FetchClient implements HttpClient {
     return url;
   }
 
-  private mergeHeaders(requestHeaders?: Record<string, string>): Record<string, string> {
-    return {
-      'Content-Type': 'application/json',
+  private mergeHeaders(requestHeaders?: Record<string, string>, body?: RequestInit['body']): Record<string, string> {
+    const mergedHeaders: Record<string, string> = {
       ...this.config.headers,
       ...requestHeaders,
     };
+
+    const hasContentType = Object.keys(mergedHeaders).some((header) => header.toLowerCase() === 'content-type');
+    const shouldSetJsonContentType = body != null && !(body instanceof FormData) && !hasContentType;
+
+    if (shouldSetJsonContentType) {
+      return {
+        'Content-Type': 'application/json',
+        ...mergedHeaders,
+      };
+    }
+
+    return mergedHeaders;
   }
 
   getBaseUrl(): string {

@@ -22,4 +22,8 @@ export interface SignUpRequest {
 
 export interface VerifyResponse {
   is_valid: boolean;
+  sub?: string;
+  tid?: string;
+  role?: string;
+  error?: string;
 }
